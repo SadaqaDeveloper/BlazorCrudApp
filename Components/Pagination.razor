@@ -1,0 +1,57 @@
+﻿@inject BlazorCrudApp.Services.ProductListState ProductListState
+
+@if (TotalPages > 1)
+{
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+            Showing @StartItem to @EndItem of @TotalItems
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-outline-secondary"
+                    disabled="@(ProductListState.CurrentPage == 1)"
+                    @onclick="PrevPage">
+                Prev
+            </button>
+
+            <button class="btn btn-outline-secondary" disabled>
+                Page @ProductListState.CurrentPage / @TotalPages
+            </button>
+
+            <button class="btn btn-outline-secondary"
+                    disabled="@(ProductListState.CurrentPage == TotalPages)"
+                    @onclick="NextPage">
+                Next
+            </button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public int TotalItems { get; set; }
+    [Parameter] public int TotalPages { get; set; }
+
+    // Notify parent so it can re-render / clamp / fetch etc.
+    [Parameter] public EventCallback<int> CurrentPageChanged { get; set; }
+
+    private int StartItem => TotalItems == 0 ? 0 : ((ProductListState.CurrentPage - 1) * ProductListState.PageSize) + 1;
+    private int EndItem => Math.Min(ProductListState.CurrentPage * ProductListState.PageSize, TotalItems);
+
+    private async Task PrevPage()
+    {
+        if (ProductListState.CurrentPage > 1)
+        {
+            ProductListState.CurrentPage--;
+            await CurrentPageChanged.InvokeAsync(ProductListState.CurrentPage);
+        }
+    }
+
+    private async Task NextPage()
+    {
+        if (ProductListState.CurrentPage < TotalPages)
+        {
+            ProductListState.CurrentPage++;
+            await CurrentPageChanged.InvokeAsync(ProductListState.CurrentPage);
+        }
+    }
+}

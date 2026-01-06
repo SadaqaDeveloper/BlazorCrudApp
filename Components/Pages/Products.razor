@@ -87,34 +87,8 @@ else
             }
         </tbody>
     </table>
-    @if (totalPages > 1)
-    {
-        <div class="d-flex justify-content-between align-items-center mt-3">
-            <div>
-                Showing @(((ProductListState.CurrentPage - 1) * ProductListState.PageSize) + 1)
-                to @(Math.Min(ProductListState.CurrentPage * ProductListState.PageSize, totalItems))
-                of @totalItems
-            </div>
-
-            <div class="btn-group">
-                <button class="btn btn-outline-secondary"
-                        disabled="@(ProductListState.CurrentPage == 1)"
-                        @onclick="PrevPage">
-                    Prev
-                </button>
-
-                <button class="btn btn-outline-secondary" disabled>
-                    Page @ProductListState.CurrentPage / @totalPages
-                </button>
-
-                <button class="btn btn-outline-secondary"
-                        disabled="@(ProductListState.CurrentPage == totalPages)"
-                        @onclick="NextPage">
-                    Next
-                </button>
-            </div>
-        </div>
-    }
+    <Pagination TotalItems="@totalItems"
+                TotalPages="@totalPages" />
 }
 
 @if (showConfirm)
@@ -146,7 +120,7 @@ else
     {
         ProductListState.SearchText = e.Value?.ToString() ?? string.Empty;
         ProductListState.CurrentPage = 1;
-        
+
     }
 
     // sorting implementation
@@ -162,7 +136,7 @@ else
             ProductListState.SortAsc = true;
         }
         ProductListState.CurrentPage = 1;
-        
+
     }
 
     // pagination implementation
@@ -171,16 +145,6 @@ else
     private IEnumerable<Product> pagedProducts => filteredProducts
         .Skip((ProductListState.CurrentPage - 1) * ProductListState.PageSize)
         .Take(ProductListState.PageSize);
-    private void PrevPage()
-    {
-        if (ProductListState.CurrentPage > 1) ProductListState.CurrentPage--;
-        
-    }
-    private void NextPage()
-    {
-        if (ProductListState.CurrentPage < totalPages) ProductListState.CurrentPage++;
-        
-    }
 
     protected override async Task OnInitializedAsync()
     {
