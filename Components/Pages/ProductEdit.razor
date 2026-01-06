@@ -13,46 +13,26 @@
 else if (model is null)
 {
     <div class="alert alert-danger">Product not found.</div>
-    <button class="btn btn-secondary" @onclick="@(() => Nav.NavigateTo("/products"))">
+    <button class="btn btn-secondary" @onclick="GoBack">
         Back to Products
     </button>
 }
 else
 {
-    <EditForm Model="model" FormName="ProductEditForm" OnValidSubmit="Save">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-
-        <div class="mb-3">
-            <label class="form-label">Name</label>
-            <InputText class="form-control" @bind-Value="model.Name" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Price</label>
-            <InputNumber class="form-control" @bind-Value="model.Price" />
-        </div>
-
-        <div class="mb-3">
-            <label class="form-label">Stock</label>
-            <InputNumber class="form-control" @bind-Value="model.Stock" />
-        </div>
-
-        <button class="btn btn-primary" type="submit">Save</button>
-        <button class="btn btn-secondary ms-2" type="button"
-                @onclick="GoBack">
-            Cancel
-        </button>
-    </EditForm>
+    <ProductForm Model="model"
+        FormName="ProductEditForm"
+        SubmitText="Save"
+        IsBusy="busy"
+        OnValidSubmit="Save"
+        OnCancel="GoBack" />
 }
 
 @code {
-    [SupplyParameterFromQuery] public string? returnUrl { get; set; }
-
     [Parameter] public int Id { get; set; }
 
     private bool loading = true;
     private Product? model;
+    private bool busy = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -63,6 +43,9 @@ else
     private async Task Save()
     {
         if (model is null) return;
+
+        if (busy) return;
+        busy = true;
 
         try
         {
@@ -80,10 +63,14 @@ else
         {
             Notify.Error($"Update failed: {ex.Message}");
         }
+        finally
+        {
+            busy = false;
+        }
     }
 
     private void GoBack()
     {
-        Nav.NavigateTo(string.IsNullOrWhiteSpace(returnUrl) ? "/products" : returnUrl);
+        Nav.NavigateTo("/products");
     }
 }

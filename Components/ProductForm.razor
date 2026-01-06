@@ -1,0 +1,36 @@
+﻿@using BlazorCrudApp.Data.Models
+
+<EditForm Model="Model" FormName="@FormName" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <InputText class="form-control" @bind-Value="Model.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Price</label>
+        <InputNumber class="form-control" @bind-Value="Model.Price" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Stock</label>
+        <InputNumber class="form-control" @bind-Value="Model.Stock" />
+    </div>
+
+    <button class="btn btn-primary" type="submit" disabled="@IsBusy">@SubmitText</button>
+    <button class="btn btn-secondary ms-2" type="button" disabled="@IsBusy" @onclick="OnCancel">@CancelText</button>
+</EditForm>
+
+@code {
+    [Parameter, EditorRequired] public Product Model { get; set; } = default!;
+    [Parameter, EditorRequired] public string FormName { get; set; } = default!;
+
+    [Parameter] public string SubmitText { get; set; } = "Save";
+    [Parameter] public string CancelText { get; set; } = "Cancel";
+    [Parameter] public bool IsBusy { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback OnValidSubmit { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnCancel { get; set; }
+}
