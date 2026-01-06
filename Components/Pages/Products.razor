@@ -1,0 +1,273 @@
+﻿@page "/products"
+@using BlazorCrudApp.Data.Models
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.WebUtilities
+@inject BlazorCrudApp.Services.ProductService ProductService
+@inject BlazorCrudApp.Services.ProductListState ProductListState
+@inject NavigationManager Nav
+@inject BlazorCrudApp.Services.NotificationService Notify
+
+<h3>Products</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="@(() => Nav.NavigateTo("/products/new"))">
+        New Product
+    </button>
+</div>
+<div class="row mb-3">
+    <div class="col-md-6">
+        <InputText class="form-control"
+                   placeholder="Search by name..."
+                   @bind-Value="@ProductListState.SearchText"
+                   @oninput="OnSearchInput" />
+    </div>
+</div>
+@if (!string.IsNullOrWhiteSpace(Notify.Message))
+{
+    <div class="alert @(Notify.IsError ? "alert-danger" : "alert-success") d-flex justify-content-between align-items-center">
+        <div>@Notify.Message</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="Notify.Clear">X</button>
+    </div>
+}
+@if(loading)
+{
+    <p>Loading...</p>
+}
+else if (!filteredProducts.Any())
+{
+    <p>No products yet.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th style="width:80px;">
+                    <button type="button" class="btn btn-link p-0" @onclick="@(() => SortBy("Id"))">
+                        Id
+                    </button>
+                </th>
+                <th>
+                    <button type="button" class="btn btn-link p-0" @onclick="@(() => SortBy("Name"))">
+                        Name
+                    </button>
+                </th>
+                <th style="width:140px;">
+                    <button type="button" class="btn btn-link p-0" @onclick="@(() => SortBy("Price"))">
+                        Price
+                    </button>
+                </th>
+                <th style="width:120px;">
+                    <button type="button" class="btn btn-link p-0" @onclick="@(() => SortBy("Stock"))">
+                        Stock
+                    </button>
+                </th>
+                <th style="width:220px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in pagedProducts)
+            {
+                <tr>
+                    <td>@p.Id</td>
+                    <td>@p.Name</td>
+                    <td>@p.Price</td>
+                    <td>@p.Stock</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-secondary me-2"
+                                @onclick="@(() => Nav.NavigateTo($"/products/{p.Id}/edit"))">
+                            Edit
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger"
+                                @onclick="() => ConfirmDelete(p.Id)">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    @if (totalPages > 1)
+    {
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div>
+                Showing @(((ProductListState.CurrentPage - 1) * ProductListState.PageSize) + 1)
+                to @(Math.Min(ProductListState.CurrentPage * ProductListState.PageSize, totalItems))
+                of @totalItems
+            </div>
+
+            <div class="btn-group">
+                <button class="btn btn-outline-secondary"
+                        disabled="@(ProductListState.CurrentPage == 1)"
+                        @onclick="PrevPage">
+                    Prev
+                </button>
+
+                <button class="btn btn-outline-secondary" disabled>
+                    Page @ProductListState.CurrentPage / @totalPages
+                </button>
+
+                <button class="btn btn-outline-secondary"
+                        disabled="@(ProductListState.CurrentPage == totalPages)"
+                        @onclick="NextPage">
+                    Next
+                </button>
+            </div>
+        </div>
+    }
+}
+
+@if (showConfirm)
+{
+    <div class="alert alert-warning">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>Delete product <b>#@deleteId</b>?</div>
+            <div>
+                <button class="btn btn-sm btn-danger me-2" @onclick="Delete">Yes, delete</button>
+                <button class="btn btn-sm btn-secondary" @onclick="CancelDelete">Cancel</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // loading state
+    private bool loading = true;
+
+    // delete confirmation state
+    private bool showConfirm;
+    private int deleteId;
+
+    // all products initialized
+    private List<Product> allProducts = new();
+
+    // search implementation
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        ProductListState.SearchText = e.Value?.ToString() ?? string.Empty;
+        ProductListState.CurrentPage = 1;
+        
+    }
+
+    // sorting implementation
+    private void SortBy(string column)
+    {
+        if (ProductListState.SortColumn == column)
+        {
+            ProductListState.SortAsc = !ProductListState.SortAsc;
+        }
+        else
+        {
+            ProductListState.SortColumn = column;
+            ProductListState.SortAsc = true;
+        }
+        ProductListState.CurrentPage = 1;
+        
+    }
+
+    // pagination implementation
+    private int totalItems => filteredProducts.Count();
+    private int totalPages => (int)Math.Ceiling(totalItems / (double)ProductListState.PageSize);
+    private IEnumerable<Product> pagedProducts => filteredProducts
+        .Skip((ProductListState.CurrentPage - 1) * ProductListState.PageSize)
+        .Take(ProductListState.PageSize);
+    private void PrevPage()
+    {
+        if (ProductListState.CurrentPage > 1) ProductListState.CurrentPage--;
+        
+    }
+    private void NextPage()
+    {
+        if (ProductListState.CurrentPage < totalPages) ProductListState.CurrentPage++;
+        
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    protected override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !string.IsNullOrWhiteSpace(Notify.Message))
+        {
+            // Clear after the message has had a chance to render once
+            Notify.Clear();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        allProducts = await ProductService.GetAllAsync() ?? new List<Product>();
+        loading = false;
+    }
+
+    private void ConfirmDelete(int id)
+    {
+        deleteId = id;
+        showConfirm = true;
+    }
+
+    private void CancelDelete()
+    {
+        showConfirm = false;
+        deleteId = 0;
+    }
+
+    private async Task Delete()
+    {
+        try
+        {
+            var ok = await ProductService.DeleteAsync(deleteId);
+            showConfirm = false;
+
+            if (ok) Notify.Success($"Product #{deleteId} deleted successfully.");
+            else Notify.Error($"Delete failed: Product #{deleteId} not found.");
+
+            await LoadAsync();
+        }
+        catch (Exception ex)
+        {
+            Notify.Error($"Delete failed: {ex.Message}");
+        }
+    }
+
+    // get filtered products
+    private IEnumerable<Product> filteredProducts
+    {
+        get
+        {
+            IEnumerable<Product> q = allProducts;
+
+            // Filter
+            if (!string.IsNullOrWhiteSpace(ProductListState.SearchText))
+            {
+                q = q.Where(p =>
+                    (p.Name ?? string.Empty).Contains(ProductListState.SearchText, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Sort
+            q = (ProductListState.SortColumn, ProductListState.SortAsc) switch
+            {
+                ("Id", true) => q.OrderBy(p => p.Id),
+                ("Id", false) => q.OrderByDescending(p => p.Id),
+
+                ("Name", true) => q.OrderBy(p => p.Name),
+                ("Name", false) => q.OrderByDescending(p => p.Name),
+
+                ("Price", true) => q.OrderBy(p => p.Price),
+                ("Price", false) => q.OrderByDescending(p => p.Price),
+
+                ("Stock", true) => q.OrderBy(p => p.Stock),
+                ("Stock", false) => q.OrderByDescending(p => p.Stock),
+
+                _ => q.OrderByDescending(p => p.Id)
+            };
+
+            return q;
+        }
+    }
+}

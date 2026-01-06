@@ -1,0 +1,77 @@
+############################################
+# .NET / Visual Studio
+############################################
+
+# Build results
+bin/
+obj/
+
+# Rider / VS / VS Code
+.vs/
+.vscode/
+.idea/
+
+# User-specific files
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+############################################
+# .NET publish outputs
+############################################
+publish/
+artifacts/
+
+############################################
+# ASP.NET / Blazor
+############################################
+
+# Secrets & certificates
+secrets.json
+*.pfx
+
+# ASP.NET HTTPS dev certs
+aspnetapp.pfx
+
+############################################
+# Environment / configuration
+############################################
+
+# Environment-specific settings
+appsettings.Development.json
+appsettings.Local.json
+appsettings.Staging.json
+
+# Local environment overrides
+.env
+.env.*
+
+############################################
+# Logs
+############################################
+logs/
+*.log
+
+############################################
+# OS generated
+############################################
+.DS_Store
+Thumbs.db
+
+############################################
+# SQLite / local databases (important for you)
+############################################
+
+# EF Core / SQLite local DB
+*.db
+*.db-shm
+*.db-wal
+
+############################################
+# Node / frontend (if you later add it)
+############################################
+node_modules/
+dist/
+build/

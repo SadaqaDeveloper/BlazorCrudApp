@@ -1,0 +1,89 @@
+﻿@page "/products/{Id:int}/edit"
+@using BlazorCrudApp.Data.Models
+@inject BlazorCrudApp.Services.ProductService ProductService
+@inject BlazorCrudApp.Services.NotificationService Notify
+@inject NavigationManager Nav
+
+<h3>Edit @(model?.Name ?? "Product")</h3>
+
+@if(loading)
+{
+    <p>Loading...</p>
+}
+else if (model is null)
+{
+    <div class="alert alert-danger">Product not found.</div>
+    <button class="btn btn-secondary" @onclick="@(() => Nav.NavigateTo("/products"))">
+        Back to Products
+    </button>
+}
+else
+{
+    <EditForm Model="model" FormName="ProductEditForm" OnValidSubmit="Save">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Name</label>
+            <InputText class="form-control" @bind-Value="model.Name" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Price</label>
+            <InputNumber class="form-control" @bind-Value="model.Price" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Stock</label>
+            <InputNumber class="form-control" @bind-Value="model.Stock" />
+        </div>
+
+        <button class="btn btn-primary" type="submit">Save</button>
+        <button class="btn btn-secondary ms-2" type="button"
+                @onclick="GoBack">
+            Cancel
+        </button>
+    </EditForm>
+}
+
+@code {
+    [SupplyParameterFromQuery] public string? returnUrl { get; set; }
+
+    [Parameter] public int Id { get; set; }
+
+    private bool loading = true;
+    private Product? model;
+
+    protected override async Task OnInitializedAsync()
+    {
+        model = await ProductService.GetByIdAsync(Id);
+        loading = false;
+    }
+
+    private async Task Save()
+    {
+        if (model is null) return;
+
+        try
+        {
+            var ok = await ProductService.UpdateAsync(model);
+            if (!ok)
+            {
+                Notify.Error("Update failed: product not found.");
+                return;
+            }
+
+            Notify.Success("Product updated successfully.");
+            Nav.NavigateTo("/products");
+        }
+        catch (Exception ex)
+        {
+            Notify.Error($"Update failed: {ex.Message}");
+        }
+    }
+
+    private void GoBack()
+    {
+        Nav.NavigateTo(string.IsNullOrWhiteSpace(returnUrl) ? "/products" : returnUrl);
+    }
+}

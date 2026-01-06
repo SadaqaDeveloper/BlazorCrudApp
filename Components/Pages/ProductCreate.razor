@@ -1,0 +1,52 @@
+﻿@page "/products/new"
+@using BlazorCrudApp.Data.Models
+@inject BlazorCrudApp.Services.ProductService ProductService
+@inject BlazorCrudApp.Services.NotificationService Notify
+@inject NavigationManager Nav
+
+<h3>Add New Product</h3>
+
+<EditForm Model="model" FormName="CreateProductForm" OnValidSubmit="Save">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+
+        <label class="form-label">Name</label>
+        <InputText class="form-control" @bind-Value="model.Name" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Price</label>
+        <InputNumber class="form-control" @bind-Value="model.Price" />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Stock</label>
+        <InputNumber class="form-control" @bind-Value="model.Stock" />
+    </div>
+
+    <button class="btn btn-primary" type="submit">Create</button>
+    <button class="btn btn-secondary ms-2" type="button"
+            @onclick="@(() => Nav.NavigateTo("/products"))">
+        Cancel
+    </button>
+</EditForm>
+
+@code {
+    private Product model = new Product();
+
+    private async Task Save()
+    {
+        try
+        {
+            await ProductService.CreateAsync(model);
+            Notify.Success("Product created successfully.");
+            Nav.NavigateTo("/products");
+        }
+        catch (Exception ex)
+        {
+            Notify.Error($"Create failed: {ex.Message}");
+        }
+    }
+}
